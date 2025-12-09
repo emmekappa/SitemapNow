@@ -8,6 +8,7 @@ import { URL } from 'url';
 // Interface for options passed to processSitemap
 interface SitemapOptions {
   key?: string;
+  keyLocation?: string;
   site?: string;
   engine?: string;
 }
@@ -71,6 +72,7 @@ async function submitUrlsToIndexNow(
   urls: string[],
   host: string,
   key: string,
+  keyLocation: string,
   searchEngine?: string
 ): Promise<any> {
   // Default search engine if not specified
@@ -79,21 +81,21 @@ async function submitUrlsToIndexNow(
   // Build the URL for the API
   const apiUrl = `https://${engine}/indexnow`;
   
-  // If there's only one URL, use the simpler GET method
-  if (urls.length === 1) {
-    const singleUrl = `${apiUrl}?url=${encodeURIComponent(urls[0])}&key=${key}`;
-    console.log(chalk.blue(`  Submitting single URL to IndexNow: ${urls[0]}`));
-    
-    const response = await fetch(singleUrl);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`IndexNow API returned ${response.status}: ${errorText}`);
-    }
-    
-    return await response.text();
-  }
-  
+  // // If there's only one URL, use the simpler GET method
+  // if (urls.length === 1) {
+  //   const singleUrl = `${apiUrl}?url=${encodeURIComponent(urls[0])}&key=${key}`;
+  //   console.log(chalk.blue(`  Submitting single URL to IndexNow: ${urls[0]}`));
+  //
+  //   const response = await fetch(singleUrl);
+  //
+  //   if (!response.ok) {
+  //     const errorText = await response.text();
+  //     throw new Error(`IndexNow API returned ${response.status}: ${errorText}`);
+  //   }
+  //
+  //   return await response.text();
+  // }
+  //
   // For multiple URLs, use the POST method with JSON payload
   console.log(chalk.blue(`  Submitting ${urls.length} URLs to IndexNow via POST request`));
   
@@ -107,6 +109,7 @@ async function submitUrlsToIndexNow(
     const payload = {
       host,
       key,
+      keyLocation,
       urlList: batch
     };
     
@@ -160,6 +163,10 @@ export async function processSitemap(sitemapLocation: string, options: SitemapOp
     console.log(chalk.yellow('⚠️ IndexNow API key not provided. Please provide a key using the -k or --key option.'));
     return;
   }
+
+  if(!options.keyLocation) {
+    console.log(chalk.yellow('⚠️ IndexNow API key location not provided. Please provide a key location using the -l or --keyLocation option.'));
+  }
   
   // Validate API key format (8-128 hexadecimal characters)
   const keyRegex = /^[a-zA-Z0-9\-]{8,128}$/;
@@ -185,10 +192,11 @@ export async function processSitemap(sitemapLocation: string, options: SitemapOp
   
   // Submit URLs to IndexNow
   console.log(chalk.green('\n🚀 Submitting URLs to IndexNow for host:'), chalk.cyan(host));
-  console.log(chalk.yellow(`⚠️ Note: Ensure you have a key file at https://${host}/${options.key}.txt containing your key!`));
-  
+  console.log(chalk.yellow(`⚠️ Note: Ensure you have a key file at ${options.keyLocation} containing your key!`));
+
   try {
-    const result = await submitUrlsToIndexNow(urls, host, options.key, options.engine);
+
+    const result = await submitUrlsToIndexNow(urls, host, options.key, options.keyLocation!, options.engine);
     
     console.log(chalk.green('\n✅ IndexNow submission result:'), result);
     console.log(chalk.green.bold('\n🎉 All URLs submitted successfully!'));
